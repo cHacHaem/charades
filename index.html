@@ -16,9 +16,10 @@ body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"
 .screen.on{display:flex}
 h1{margin:0;font-size:clamp(28px,6vw,48px)}
 p{margin:0;color:var(--sub);max-width:34em;line-height:1.4}
-.cats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:min(480px,100%)}
-.cat{background:var(--card);border:3px solid transparent;border-radius:18px;padding:16px 8px;font-size:18px;font-weight:600;color:var(--ink);cursor:pointer}
-.cat span{display:block;font-size:40px;margin-bottom:4px}
+.cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;width:min(600px,100%)}
+#menu{overflow-y:auto;justify-content:safe center}#menu>*{flex-shrink:0}
+.cat{background:var(--card);border:3px solid transparent;border-radius:18px;padding:10px 6px;font-size:16px;font-weight:600;color:var(--ink);cursor:pointer}
+.cat span{display:block;font-size:30px;margin-bottom:4px}
 .cat.sel{border-color:var(--accent)}
 .btn{background:var(--accent);color:#fff;border:0;border-radius:999px;padding:14px 36px;font-size:20px;font-weight:700;cursor:pointer}
 .btn.ghost{background:var(--card);color:var(--ink)}
@@ -44,6 +45,8 @@ p{margin:0;color:var(--sub);max-width:34em;line-height:1.4}
   <p>Pick a category, put the phone on your forehead (landscape), and let friends act it out. Tilt down for correct, tilt up to pass. You get 60 seconds.</p>
   <div class="cats" id="cats"></div>
   <button class="btn" id="start">Start</button>
+  <div><button class="btn ghost" id="test" style="font-size:16px;padding:10px 22px">Test haptics</button>
+  <label style="margin-left:12px;color:var(--sub)"><input type="checkbox" id="snd" checked> Sound cues</label></div>
   <p id="note"></p>
 </div>
 
@@ -72,13 +75,22 @@ const CATS={
   food:{n:'Food',e:'🍕',w:['Pizza','Sushi','Tacos','Spaghetti','Pancakes','Popcorn','Hamburger','Ice cream','Watermelon','Hot dog','Burrito','Donut','Pretzel','Lasagna','Cupcake','Broccoli','French fries','Pineapple','Ramen','Waffles','Nachos','Cheesecake','Avocado','Fried chicken','Cereal','Meatballs','Dumplings','Corn on the cob','Grilled cheese','Banana split']},
   instruments:{n:'Instruments',e:'🎸',w:['Guitar','Piano','Drums','Violin','Trumpet','Saxophone','Flute','Harp','Banjo','Accordion','Tuba','Cello','Harmonica','Bagpipes','Xylophone','Ukulele','Clarinet','Trombone','Tambourine','Triangle','Bass guitar','Keyboard','Maracas','Oboe','Bongos','Recorder','Cowbell','Organ','Mandolin','Didgeridoo']},
   countries:{n:'Countries',e:'🌍',w:['Brazil','Japan','Egypt','Canada','Australia','Italy','Mexico','India','France','Kenya','Norway','Argentina','China','Greece','Spain','Peru','Germany','Thailand','Ireland','Jamaica','Switzerland','Russia','Turkey','South Africa','Vietnam','Cuba','Iceland','New Zealand','Portugal','Morocco']}
+  ,sports:{n:'Sports',e:'🏀',w:['Basketball','Swimming','Surfing','Archery','Bowling','Boxing','Golf','Skateboarding','Tennis','Fencing','Wrestling','Skiing','Baseball','Gymnastics','Rock climbing','Volleyball','Weightlifting','Rowing','Hockey','Karate','Pole vault','Diving','Cycling','Javelin throw','Badminton','Snowboarding','Table tennis','Sumo','Cricket','Soccer']},
+  games:{n:'Video Games',e:'🎮',w:['Minecraft','Mario Kart','Fortnite','Tetris','Pac-Man','Among Us','Roblox','Zelda','Pokémon','Sonic','Fall Guys','Call of Duty','Animal Crossing','Rocket League','Super Smash Bros','Angry Birds','Just Dance','Overwatch','Subway Surfers','Flappy Bird','Candy Crush','Mortal Kombat','Splatoon','Halo','Donkey Kong','Space Invaders','The Sims','Skyrim','Clash Royale','Cuphead']},
+  fastfood:{n:'Fast Food',e:'🍔',w:["McDonald's","Burger King","Wendy's","Taco Bell","KFC","Subway","Chick-fil-A","Domino's","Pizza Hut","Chipotle","Popeyes","Five Guys","In-N-Out","Dunkin'","Starbucks","Sonic Drive-In","Panda Express","Arby's","Jack in the Box","Papa John's","Panera","Dairy Queen","Shake Shack","White Castle","Wingstop","Little Caesars","Culver's","Jimmy John's","Whataburger","Krispy Kreme"]},
+  companies:{n:'Companies',e:'🏢',w:['Apple','Google','Amazon','Nike','Disney','Netflix','Tesla','Microsoft','Nintendo','LEGO','Coca-Cola','Adidas','Spotify','Target','Walmart','IKEA','Samsung','Sony','YouTube','Uber','Meta','Pixar','Costco','Home Depot','PlayStation','Intel','Visa','Red Bull','Toyota']}
 };
 const $=id=>document.getElementById(id);
 let cat='animals',deck=[],cur='',score=0,results=[],end=0,lastSec=60,phase='menu',armed=false,locked=false,timerId=null,sensorOn=false;
 
-function haptic(p){
-  try{ if(navigator.vibrate){navigator.vibrate(p);return} }catch(e){}
-  try{ $('hl').click() }catch(e){} // iOS Safari fallback (best effort)
+let actx=null,soundOn=true;
+function beep(f,d){ if(!soundOn||!actx)return; try{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=f;g.gain.value=.15;o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+d/1000)}catch(e){} }
+function haptic(p,f=600){
+  beep(f,Math.max(60,Array.isArray(p)?p[0]:p));
+  let ok=false;
+  try{ if(navigator.vibrate) ok=navigator.vibrate(p) }catch(e){}
+  if(!ok){ try{$('hl').click()}catch(e){} } // iOS best effort (only works inside a tap)
+  return ok;
 }
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id))}
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -114,7 +126,7 @@ function tick(){
   const s=Math.max(0,Math.ceil((end-Date.now())/1000));
   if(s!==lastSec){
     lastSec=s;$('timer').textContent=s;
-    if(s<=10&&s>0){haptic(60);$('timer').classList.add('low')}
+    if(s<=10&&s>0){haptic(60,1000);$('timer').classList.add('low')}
   }
   if(s<=0)finish();
 }
@@ -125,7 +137,7 @@ async function act(kind){
   if(ok)score++;
   results.push({w:cur,ok});
   $('score').textContent=score;
-  haptic(ok?[120]:[40,40,40]);
+  haptic(ok?[120]:[40,40,40],ok?880:330);
   $('game').style.background=ok?'#16a34a':'#ea580c';
   $('word').textContent=ok?'Correct!':'Pass';
   await sleep(650);
@@ -144,12 +156,15 @@ function onOri(e){
 }
 function finish(){
   clearInterval(timerId);phase='end';
-  haptic([200,100,200]);
+  haptic([200,100,200],440);
   $('final').textContent=score;
   $('res').innerHTML=results.length?results.map(r=>`<div class="${r.ok?'ok':'no'}">${r.ok?'✓':'✗'} ${r.w}</div>`).join(''):'<div>No words played.</div>';
   show('end');
 }
-$('start').onclick=async()=>{
+function initAudio(){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended')actx.resume() }catch(e){} soundOn=$('snd').checked }
+$('test').onclick=()=>{ initAudio(); const ok=haptic([200],700);
+  $('note').textContent=ok?'Vibration sent. If you felt nothing, check your phone\'s vibration / touch feedback settings.':'This browser blocked vibration (iPhone browsers can\'t vibrate from web pages, and some in-app views block it). Sound cues will be used instead.' };
+$('start').onclick=async()=>{ initAudio();
   if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
     try{ const r=await DeviceOrientationEvent.requestPermission(); if(r!=='granted')$('note').textContent='Motion access denied. Use the on-screen buttons or arrow keys.' }catch(e){}
   }
