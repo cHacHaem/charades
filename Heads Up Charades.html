@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Heads Up Charades</title>
+<style>
+:root{--bg:#f5f3ff;--card:#fff;--ink:#1e1b4b;--sub:#6b7280;--accent:#6d28d9;--good:#16a34a;--pass:#ea580c;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#13111f;--card:#201c33;--ink:#f3f0ff;--sub:#a5a1bd;--accent:#a78bfa}}
+:root[data-theme="dark"]{--bg:#13111f;--card:#201c33;--ink:#f3f0ff;--sub:#a5a1bd;--accent:#a78bfa}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;user-select:none}
+.screen{display:none;height:100%;width:100%;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;gap:14px}
+.screen.on{display:flex}
+h1{margin:0;font-size:clamp(28px,6vw,48px)}
+p{margin:0;color:var(--sub);max-width:34em;line-height:1.4}
+.cats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:min(480px,100%)}
+.cat{background:var(--card);border:3px solid transparent;border-radius:18px;padding:16px 8px;font-size:18px;font-weight:600;color:var(--ink);cursor:pointer}
+.cat span{display:block;font-size:40px;margin-bottom:4px}
+.cat.sel{border-color:var(--accent)}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:999px;padding:14px 36px;font-size:20px;font-weight:700;cursor:pointer}
+.btn.ghost{background:var(--card);color:var(--ink)}
+#game{transition:background .15s;color:#fff;background:#4c1d95}
+#timer{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:18px;font-size:clamp(22px,5vw,36px);font-weight:800;font-variant-numeric:tabular-nums;opacity:.9}
+#timer.low{color:#fecaca;animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.2)}}
+#score{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:18px;font-size:clamp(18px,4vw,28px);font-weight:700;opacity:.8}
+#word{font-size:clamp(40px,13vmax,150px);font-weight:900;line-height:1.05;word-break:break-word;padding:0 4vw}
+#big{font-size:clamp(100px,30vmin,300px);font-weight:900}
+.tap{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;opacity:.55}
+.tap button{background:rgba(255,255,255,.2);color:#fff;border:0;border-radius:999px;padding:8px 18px;font-size:15px;font-weight:600}
+.res{max-height:38vh;overflow:auto;width:min(420px,100%);text-align:left;background:var(--card);border-radius:14px;padding:10px 16px;font-size:16px}
+.res div{padding:3px 0}.ok{color:var(--good)}.no{color:var(--pass)}
+.score{font-size:72px;font-weight:900;color:var(--accent)}
+</style>
+</head>
+<body>
+<label id="hl" style="position:absolute;opacity:0;pointer-events:none"><input type="checkbox" switch id="hs"></label>
+
+<div id="menu" class="screen on">
+  <h1>Heads Up!</h1>
+  <p>Pick a category, put the phone on your forehead (landscape), and let friends act it out. Tilt down for correct, tilt up to pass. You get 60 seconds.</p>
+  <div class="cats" id="cats"></div>
+  <button class="btn" id="start">Start</button>
+  <p id="note"></p>
+</div>
+
+<div id="count" class="screen" style="background:#0f172a;color:#fff">
+  <p style="color:#cbd5e1;font-size:20px">Put the phone on your forehead</p>
+  <div id="big">3</div>
+</div>
+
+<div id="game" class="screen">
+  <div id="score">0</div><div id="timer">60</div>
+  <div id="word"></div>
+  <div class="tap"><button id="bp">⬆ Pass</button><button id="bc">⬇ Correct</button></div>
+</div>
+
+<div id="end" class="screen">
+  <p style="font-size:20px">Time's up!</p>
+  <div class="score" id="final">0</div>
+  <div class="res" id="res"></div>
+  <button class="btn" id="again">Play again</button>
+  <button class="btn ghost" id="home">Change category</button>
+</div>
+
+<script>
+const CATS={
+  animals:{n:'Animals',e:'🦁',w:['Elephant','Giraffe','Penguin','Kangaroo','Octopus','Flamingo','Gorilla','Dolphin','Sloth','Crocodile','Peacock','Hedgehog','Shark','Owl','Camel','Butterfly','Panda','Lobster','Bat','Chameleon','Zebra','Squirrel','Seahorse','Rhino','Koala','Cheetah','Jellyfish','Woodpecker','Platypus','Turtle']},
+  food:{n:'Food',e:'🍕',w:['Pizza','Sushi','Tacos','Spaghetti','Pancakes','Popcorn','Hamburger','Ice cream','Watermelon','Hot dog','Burrito','Donut','Pretzel','Lasagna','Cupcake','Broccoli','French fries','Pineapple','Ramen','Waffles','Nachos','Cheesecake','Avocado','Fried chicken','Cereal','Meatballs','Dumplings','Corn on the cob','Grilled cheese','Banana split']},
+  instruments:{n:'Instruments',e:'🎸',w:['Guitar','Piano','Drums','Violin','Trumpet','Saxophone','Flute','Harp','Banjo','Accordion','Tuba','Cello','Harmonica','Bagpipes','Xylophone','Ukulele','Clarinet','Trombone','Tambourine','Triangle','Bass guitar','Keyboard','Maracas','Oboe','Bongos','Recorder','Cowbell','Organ','Mandolin','Didgeridoo']},
+  countries:{n:'Countries',e:'🌍',w:['Brazil','Japan','Egypt','Canada','Australia','Italy','Mexico','India','France','Kenya','Norway','Argentina','China','Greece','Spain','Peru','Germany','Thailand','Ireland','Jamaica','Switzerland','Russia','Turkey','South Africa','Vietnam','Cuba','Iceland','New Zealand','Portugal','Morocco']}
+};
+const $=id=>document.getElementById(id);
+let cat='animals',deck=[],cur='',score=0,results=[],end=0,lastSec=60,phase='menu',armed=false,locked=false,timerId=null,sensorOn=false;
+
+function haptic(p){
+  try{ if(navigator.vibrate){navigator.vibrate(p);return} }catch(e){}
+  try{ $('hl').click() }catch(e){} // iOS Safari fallback (best effort)
+}
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id))}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+
+Object.entries(CATS).forEach(([k,c])=>{
+  const b=document.createElement('button');b.className='cat'+(k===cat?' sel':'');
+  b.innerHTML=`<span>${c.e}</span>${c.n}`;
+  b.onclick=()=>{cat=k;document.querySelectorAll('.cat').forEach(x=>x.classList.remove('sel'));b.classList.add('sel')};
+  $('cats').appendChild(b);
+});
+
+function nextWord(){
+  if(!deck.length)deck=shuffle(CATS[cat].w);
+  cur=deck.pop();$('word').textContent=cur;
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+async function begin(){
+  try{ if(screen.orientation&&screen.orientation.lock) await screen.orientation.lock('landscape') }catch(e){}
+  try{ if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{}) }catch(e){}
+  score=0;results=[];deck=shuffle(CATS[cat].w);phase='count';
+  $('score').textContent='0';$('timer').textContent='60';$('timer').classList.remove('low');
+  show('count');
+  for(const n of [3,2,1]){ $('big').textContent=n; haptic(70); await sleep(1000); if(phase!=='count')return }
+  haptic([150]);
+  $('game').style.background='#4c1d95';
+  nextWord();show('game');
+  phase='play';armed=false;locked=false;lastSec=60;
+  end=Date.now()+60000;
+  timerId=setInterval(tick,100);
+}
+function tick(){
+  const s=Math.max(0,Math.ceil((end-Date.now())/1000));
+  if(s!==lastSec){
+    lastSec=s;$('timer').textContent=s;
+    if(s<=10&&s>0){haptic(60);$('timer').classList.add('low')}
+  }
+  if(s<=0)finish();
+}
+async function act(kind){
+  if(phase!=='play'||locked)return;
+  locked=true;armed=false;
+  const ok=kind==='correct';
+  if(ok)score++;
+  results.push({w:cur,ok});
+  $('score').textContent=score;
+  haptic(ok?[120]:[40,40,40]);
+  $('game').style.background=ok?'#16a34a':'#ea580c';
+  $('word').textContent=ok?'Correct!':'Pass';
+  await sleep(650);
+  if(phase!=='play')return;
+  $('game').style.background='#4c1d95';
+  nextWord();locked=false;
+}
+function onOri(e){
+  if(e.beta==null||e.gamma==null)return;
+  sensorOn=true;
+  if(phase!=='play'||locked)return;
+  const b=e.beta*Math.PI/180,g=e.gamma*Math.PI/180;
+  const z=Math.cos(b)*Math.cos(g); // +1 screen faces ceiling, -1 screen faces floor
+  if(armed){ if(z<-0.55)act('correct'); else if(z>0.55)act('pass') }
+  else if(Math.abs(z)<0.3)armed=true;
+}
+function finish(){
+  clearInterval(timerId);phase='end';
+  haptic([200,100,200]);
+  $('final').textContent=score;
+  $('res').innerHTML=results.length?results.map(r=>`<div class="${r.ok?'ok':'no'}">${r.ok?'✓':'✗'} ${r.w}</div>`).join(''):'<div>No words played.</div>';
+  show('end');
+}
+$('start').onclick=async()=>{
+  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+    try{ const r=await DeviceOrientationEvent.requestPermission(); if(r!=='granted')$('note').textContent='Motion access denied. Use the on-screen buttons or arrow keys.' }catch(e){}
+  }
+  window.addEventListener('deviceorientation',onOri);
+  begin();
+};
+$('bc').onclick=()=>act('correct');$('bp').onclick=()=>act('pass');
+addEventListener('keydown',e=>{if(e.key==='ArrowDown')act('correct');if(e.key==='ArrowUp')act('pass')});
+$('again').onclick=begin;
+$('home').onclick=()=>{phase='menu';show('menu')};
+</script>
+</body>
+</html>
