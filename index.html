@@ -82,6 +82,16 @@ const CATS={
   games:{n:'Video Games',e:'🎮',w:['Minecraft','Mario Kart','Fortnite','Tetris','Pac-Man','Among Us','Roblox','Zelda','Pokémon','Sonic','Fall Guys','Call of Duty','Animal Crossing','Rocket League','Super Smash Bros','Angry Birds','Just Dance','Overwatch','Subway Surfers','Flappy Bird','Candy Crush','Mortal Kombat','Splatoon','Halo','Donkey Kong','Space Invaders','The Sims','Skyrim','Clash Royale','Cuphead']},
   fastfood:{n:'Fast Food',e:'🍔',w:["McDonald's","Burger King","Wendy's","Taco Bell","KFC","Subway","Chick-fil-A","Domino's","Pizza Hut","Chipotle","Popeyes","Five Guys","In-N-Out","Dunkin'","Starbucks","Sonic Drive-In","Panda Express","Arby's","Jack in the Box","Papa John's","Panera","Dairy Queen","Shake Shack","White Castle","Wingstop","Little Caesars","Culver's","Jimmy John's","Whataburger","Krispy Kreme"]},
   companies:{n:'Companies',e:'🏢',w:['Apple','Google','Amazon','Nike','Disney','Netflix','Tesla','Microsoft','Nintendo','LEGO','Coca-Cola','Adidas','Spotify','Target','Walmart','IKEA','Samsung','Sony','YouTube','Uber','Meta','Pixar','Costco','Home Depot','PlayStation','Intel','Visa','Red Bull','Toyota']}
+  ,artists:{n:'Music Artists',e:'🎤',w:['Taylor Swift','Drake','Beyoncé','Ed Sheeran','Billie Eilish','The Weeknd','Kanye West','Rihanna','Eminem','Ariana Grande','Bad Bunny','Post Malone','Adele','Bruno Mars','Justin Bieber','Lady Gaga','Travis Scott','Kendrick Lamar','Dua Lipa','Elvis Presley','Michael Jackson','Olivia Rodrigo','Harry Styles','Queen','The Beatles','Nicki Minaj','Lizzo','Jay-Z','Katy Perry','Shakira']},
+  apps:{n:'Apps',e:'📱',w:['Instagram','TikTok','Snapchat','YouTube','Spotify','Netflix','Uber','DoorDash','Venmo','WhatsApp','Discord','Google Maps','Duolingo','Twitter','Pinterest','Reddit','Zoom','Instagram Reels','Shazam','Calculator','Camera','Weather','Notes','FaceTime','Amazon','Waze','Twitch','BeReal','Tinder','Cash App','Gmail','Clash of Clans','Candy Crush','Calendar','Flashlight']},
+  movies:{n:'Movies',e:'🎬',w:['Titanic','Jaws','Shrek','Frozen','Avatar','Toy Story','The Lion King','Star Wars','Jurassic Park','Finding Nemo','Harry Potter','The Matrix','Spider-Man','Barbie','Inception','Home Alone','Moana','Up','Cars','Black Panther','Ghostbusters','Back to the Future','The Incredibles','Minions','Mean Girls','Rocky','Forrest Gump','Coco','Encanto','Jumanji']},
+  tv:{n:'TV Shows',e:'📺',w:['Friends','The Office','Stranger Things','SpongeBob','Squid Game','Breaking Bad','Game of Thrones','The Simpsons','Bluey','Wednesday','Family Guy','Seinfeld','The Mandalorian','Bridgerton','Avatar: The Last Airbender','Phineas and Ferb','Gilmore Girls','Brooklyn Nine-Nine','Survivor','Shark Tank','Love Island','The Bear','Rick and Morty','Modern Family','South Park','Jeopardy','Hannah Montana','Ted Lasso','Peppa Pig','Sesame Street']},
+  heroes:{n:'Superheroes',e:'🦸',w:['Batman','Superman','Spider-Man','Iron Man','Thor','Hulk','Wonder Woman','Black Widow','Captain America','Aquaman','The Flash','Deadpool','Wolverine','Black Panther','Doctor Strange','Ant-Man','Green Lantern','Catwoman','Robin','Joker','Thanos','Venom','Hawkeye','Storm','Scarlet Witch','Captain Marvel','Groot','Star-Lord','Supergirl','Shazam']},
+  cartoons:{n:'Cartoon Characters',e:'🐭',w:['Mickey Mouse','Bugs Bunny','Homer Simpson','SpongeBob','Scooby-Doo','Tom and Jerry','Pikachu','Winnie the Pooh','Elsa','Woody','Buzz Lightyear','Shrek','Donald Duck','Goofy','Garfield','Snoopy','Dora','Patrick Star','Mario','Sonic','Olaf','Simba','Nemo','Dory','Stitch','Minion','Bluey','Peppa Pig','Pinocchio','Popeye']},
+  jobs:{n:'Jobs',e:'👷',w:['Firefighter','Teacher','Doctor','Chef','Pilot','Astronaut','Plumber','Barber','Police officer','Farmer','Dentist','Photographer','Lifeguard','Mail carrier','Magician','Construction worker','Veterinarian','Mechanic','Judge','DJ','Painter','Referee','Waiter','Librarian','Tailor','Carpenter','Lumberjack','Fisherman','Janitor','Clown']},
+  household:{n:'Household Items',e:'🧹',w:['Toaster','Vacuum cleaner','Microwave','Toothbrush','Blender','Umbrella','Hair dryer','Remote control','Washing machine','Ironing board','Lawn mower','Ceiling fan','Doorbell','Stapler','Scissors','Mop','Alarm clock','Hammer','Flashlight','Coffee maker','Garbage can','Mirror','Staircase','Shower','Frying pan','Can opener','Vending machine','Lightbulb','Rubber duck','Broom']},
+  athletes:{n:'Athletes',e:'🏅',w:['LeBron James','Lionel Messi','Serena Williams','Michael Jordan','Cristiano Ronaldo','Tom Brady','Usain Bolt','Simone Biles','Stephen Curry','Tiger Woods','Patrick Mahomes','Shaquille O\'Neal','Muhammad Ali','Michael Phelps','Roger Federer','Kobe Bryant','Travis Kelce','Caitlin Clark','Shohei Ohtani','Naomi Osaka','Lewis Hamilton','Babe Ruth','Wayne Gretzky','Venus Williams','Kylian Mbappé','Giannis Antetokounmpo','Conor McGregor','Megan Rapinoe','Derek Jeter','Lindsey Vonn']},
+  hobbies:{n:'Hobbies',e:'🎨',w:['Knitting','Fishing','Gardening','Photography','Chess','Painting','Hiking','Baking','Yoga','Camping','Skydiving','Pottery','Birdwatching','Karaoke','Origami','Juggling','Scrapbooking','Surfing','Bowling','Magic tricks','Puzzles','Woodworking','Stargazing','Meditation','Dancing','Video editing','Bird feeding','Collecting stamps','Roller skating','Gaming']}
 };
 const $=id=>document.getElementById(id);
 let cat='animals',deck=[],cur='',score=0,results=[],end=0,lastSec=60,phase='menu',armed=false,locked=false,timerId=null,sensorOn=false;
@@ -98,12 +108,19 @@ function haptic(p,f=600){
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id))}
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
 
-Object.entries(CATS).forEach(([k,c])=>{
-  const b=document.createElement('button');b.className='cat'+(k===cat?' sel':'');
-  b.innerHTML=`<span>${c.e}</span>${c.n}`;
-  b.onclick=()=>{cat=k;document.querySelectorAll('.cat').forEach(x=>x.classList.remove('sel'));b.classList.add('sel')};
-  $('cats').appendChild(b);
-});
+let recent=[];try{recent=JSON.parse(localStorage.getItem('hu_recent')||'[]').filter(k=>CATS[k])}catch(e){}
+if(recent[0])cat=recent[0];
+function touch(k){recent=[k,...recent.filter(x=>x!==k)];try{localStorage.setItem('hu_recent',JSON.stringify(recent))}catch(e){}}
+function renderCats(){
+  $('cats').innerHTML='';
+  [...recent,...Object.keys(CATS).filter(k=>!recent.includes(k))].forEach(k=>{
+    const c=CATS[k],b=document.createElement('button');b.className='cat'+(k===cat?' sel':'');
+    b.innerHTML=`<span>${c.e}</span>${c.n}`;
+    b.onclick=()=>{cat=k;document.querySelectorAll('.cat').forEach(x=>x.classList.remove('sel'));b.classList.add('sel')};
+    $('cats').appendChild(b);
+  });
+}
+renderCats();
 
 function nextWord(){
   if(!deck.length)deck=shuffle(CATS[cat].w);
@@ -112,7 +129,7 @@ function nextWord(){
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 async function begin(){
-  lockScreen();
+  lockScreen();touch(cat);
   score=0;results=[];deck=shuffle(CATS[cat].w);phase='count';
   $('score').textContent='0';$('timer').textContent='60';$('timer').classList.remove('low');
   show('count');
@@ -180,13 +197,13 @@ document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==
 function goFull(){ const el=document.documentElement,f=el.requestFullscreen||el.webkitRequestFullscreen;
   if(f){ try{ const r=f.call(el); Promise.resolve(r).then(()=>{ try{screen.orientation.lock('landscape').catch(()=>{})}catch(e){} }).catch(()=>{}) }catch(e){} } }
 function leaveFull(){ try{ if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document) }catch(e){} try{screen.orientation.unlock()}catch(e){} }
-function quit(){ clearInterval(timerId);phase='menu';unlockScreen();stopSilent();leaveFull();$('timer').classList.remove('low');show('menu') }
+function quit(){ clearInterval(timerId);phase='menu';unlockScreen();stopSilent();leaveFull();$('timer').classList.remove('low');renderCats();show('menu') }
 function initAudio(){ silentLoop(); try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended')actx.resume() }catch(e){} soundOn=$('snd').checked }
 $('test').onclick=()=>{ initAudio(); const ok=haptic([200],700); setTimeout(stopSilent,600);
   $('note').textContent=ok?'Vibration sent. If you felt nothing, check your phone\'s vibration / touch feedback settings.':'This browser blocked vibration (iPhone browsers can\'t vibrate from web pages, and some in-app views block it). Sound cues will be used instead.' };
 $('start').onclick=async()=>{ goFull(); initAudio();
   if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
-    try{ const r=await DeviceOrientationEvent.requestPermission(); if(r!=='granted')$('note').textContent='Tilt controls need motion access (on desktop, use the arrow keys).' }catch(e){}
+    try{ const r=await DeviceOrientationEvent.requestPermission(); if(r!=='granted')$('note').textContent='Motion access denied. Tilt controls need motion access (on desktop, use the arrow keys).' }catch(e){}
   }
   window.addEventListener('deviceorientation',onOri);
   begin();
@@ -194,7 +211,7 @@ $('start').onclick=async()=>{ goFull(); initAudio();
 document.querySelectorAll('.quit').forEach(b=>b.onclick=quit);
 addEventListener('keydown',e=>{if(e.key==='ArrowDown')act('correct');if(e.key==='ArrowUp')act('pass')});
 $('again').onclick=()=>{goFull();initAudio();begin()};
-$('home').onclick=()=>{phase='menu';stopSilent();leaveFull();show('menu')};
+$('home').onclick=()=>{phase='menu';stopSilent();leaveFull();renderCats();show('menu')};
 </script>
 </body>
 </html>
