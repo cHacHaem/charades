@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Heads Up Charades</title>
 <style>
 :root{--bg:#f5f3ff;--card:#fff;--ink:#1e1b4b;--sub:#6b7280;--accent:#6d28d9;--good:#16a34a;--pass:#ea580c;
@@ -30,8 +33,7 @@ p{margin:0;color:var(--sub);max-width:34em;line-height:1.4}
 #score{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:18px;font-size:clamp(18px,4vw,28px);font-weight:700;opacity:.8}
 #word{font-size:clamp(40px,13vmax,150px);font-weight:900;line-height:1.05;word-break:break-word;padding:0 4vw}
 #big{font-size:clamp(100px,30vmin,300px);font-weight:900}
-.tap{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;opacity:.55}
-.tap button{background:rgba(255,255,255,.2);color:#fff;border:0;border-radius:999px;padding:8px 18px;font-size:15px;font-weight:600}
+.quit{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:rgba(255,255,255,.2);color:#fff;border:0;border-radius:999px;padding:8px 18px;font-size:15px;font-weight:600;opacity:.6}
 .res{max-height:38vh;overflow:auto;width:min(420px,100%);text-align:left;background:var(--card);border-radius:14px;padding:10px 16px;font-size:16px}
 .res div{padding:3px 0}.ok{color:var(--good)}.no{color:var(--pass)}
 .score{font-size:72px;font-weight:900;color:var(--accent)}
@@ -53,12 +55,13 @@ p{margin:0;color:var(--sub);max-width:34em;line-height:1.4}
 <div id="count" class="screen" style="background:#0f172a;color:#fff">
   <p style="color:#cbd5e1;font-size:20px">Put the phone on your forehead</p>
   <div id="big">3</div>
+  <button class="quit">✕ Quit</button>
 </div>
 
 <div id="game" class="screen">
   <div id="score">0</div><div id="timer">60</div>
   <div id="word"></div>
-  <div class="tap"><button id="bp">⬆ Pass</button><button id="bc">⬇ Correct</button></div>
+  <button class="quit">✕ Quit round</button>
 </div>
 
 <div id="end" class="screen">
@@ -109,8 +112,7 @@ function nextWord(){
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 async function begin(){
-  try{ if(screen.orientation&&screen.orientation.lock) await screen.orientation.lock('landscape') }catch(e){}
-  try{ if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{}) }catch(e){}
+  lockScreen();
   score=0;results=[];deck=shuffle(CATS[cat].w);phase='count';
   $('score').textContent='0';$('timer').textContent='60';$('timer').classList.remove('low');
   show('count');
@@ -155,26 +157,44 @@ function onOri(e){
   else if(Math.abs(z)<0.3)armed=true;
 }
 function finish(){
-  clearInterval(timerId);phase='end';
+  clearInterval(timerId);phase='end';unlockScreen();
   haptic([200,100,200],440);
   $('final').textContent=score;
   $('res').innerHTML=results.length?results.map(r=>`<div class="${r.ok?'ok':'no'}">${r.ok?'✓':'✗'} ${r.w}</div>`).join(''):'<div>No words played.</div>';
   show('end');
 }
-function initAudio(){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended')actx.resume() }catch(e){} soundOn=$('snd').checked }
-$('test').onclick=()=>{ initAudio(); const ok=haptic([200],700);
+let silentEl=null,wl=null;
+function silentLoop(){ // lets sound play even when the iPhone ringer switch is on silent
+  try{ if(navigator.audioSession)navigator.audioSession.type='playback' }catch(e){}
+  try{ if(!silentEl){ const n=8000,buf=new ArrayBuffer(44+n),v=new DataView(buf);
+    const w=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};
+    w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,8000,true);v.setUint32(28,8000,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w(36,'data');v.setUint32(40,n,true);
+    for(let i=0;i<n;i++)v.setUint8(44+i,128);
+    silentEl=new Audio(URL.createObjectURL(new Blob([buf],{type:'audio/wav'})));silentEl.loop=true }
+    silentEl.play().catch(()=>{}) }catch(e){}
+}
+function stopSilent(){ try{silentEl&&silentEl.pause()}catch(e){} }
+async function lockScreen(){ try{ if(navigator.wakeLock) wl=await navigator.wakeLock.request('screen') }catch(e){} }
+function unlockScreen(){ try{wl&&wl.release()}catch(e){} wl=null }
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&(phase==='count'||phase==='play'))lockScreen() });
+function goFull(){ const el=document.documentElement,f=el.requestFullscreen||el.webkitRequestFullscreen;
+  if(f){ try{ const r=f.call(el); Promise.resolve(r).then(()=>{ try{screen.orientation.lock('landscape').catch(()=>{})}catch(e){} }).catch(()=>{}) }catch(e){} } }
+function leaveFull(){ try{ if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document) }catch(e){} try{screen.orientation.unlock()}catch(e){} }
+function quit(){ clearInterval(timerId);phase='menu';unlockScreen();stopSilent();leaveFull();$('timer').classList.remove('low');show('menu') }
+function initAudio(){ silentLoop(); try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended')actx.resume() }catch(e){} soundOn=$('snd').checked }
+$('test').onclick=()=>{ initAudio(); const ok=haptic([200],700); setTimeout(stopSilent,600);
   $('note').textContent=ok?'Vibration sent. If you felt nothing, check your phone\'s vibration / touch feedback settings.':'This browser blocked vibration (iPhone browsers can\'t vibrate from web pages, and some in-app views block it). Sound cues will be used instead.' };
-$('start').onclick=async()=>{ initAudio();
+$('start').onclick=async()=>{ goFull(); initAudio();
   if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
-    try{ const r=await DeviceOrientationEvent.requestPermission(); if(r!=='granted')$('note').textContent='Motion access denied. Use the on-screen buttons or arrow keys.' }catch(e){}
+    try{ const r=await DeviceOrientationEvent.requestPermission(); if(r!=='granted')$('note').textContent='Tilt controls need motion access (on desktop, use the arrow keys).' }catch(e){}
   }
   window.addEventListener('deviceorientation',onOri);
   begin();
 };
-$('bc').onclick=()=>act('correct');$('bp').onclick=()=>act('pass');
+document.querySelectorAll('.quit').forEach(b=>b.onclick=quit);
 addEventListener('keydown',e=>{if(e.key==='ArrowDown')act('correct');if(e.key==='ArrowUp')act('pass')});
-$('again').onclick=begin;
-$('home').onclick=()=>{phase='menu';show('menu')};
+$('again').onclick=()=>{goFull();initAudio();begin()};
+$('home').onclick=()=>{phase='menu';stopSilent();leaveFull();show('menu')};
 </script>
 </body>
 </html>
